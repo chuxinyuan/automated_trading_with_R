@@ -1,0 +1,166 @@
+---
+title: "**量化交易学习笔记**"
+subtitle: "**自动化交易R语言实战指南**"
+author: "楚新元"
+date: today
+lang: zh
+format:
+  pdf:
+    documentclass: article
+    include-in-header: "./assets/preamble.tex"
+    toc: true
+    number-sections: true
+    classoption: UTF8
+    keep-tex: false
+    margin-top: 25mm
+    margin-bottom: 25mm
+    margin-left: 30mm
+    margin-right: 30mm
+    highlight-style: github
+    code-block-bg: "#F1F3F5"
+    colorlinks: true
+    link-citations: true
+    link-bibliography: true
+    latex-auto-install: false
+---
+
+{{< pagebreak >}}
+
+# 自动化交易的基础
+
+## 代码清单1-1：导入SPY数据
+
+```{r}
+#| warning: false
+#| message: false
+if (!require(quantmod)) {
+  install.packages("quantmod")
+}
+
+options(
+  "getSymbols.warning4.0" = FALSE, 
+  "getSymbols.auto.assign" = FALSE
+)
+
+# Loads S&P 500 ETF data, stores closing prices as a vector
+SPY = suppressWarnings(
+  getSymbols(c("SPY"), from = "2012-01-01")
+)
+SPY = as.numeric(SPY$SPY.Close)[1:987]
+
+# 保存数据到本地，方便后期使用
+if (!dir.exists("data")) dir.create("data")
+write.table(
+  x = SPY, 
+  file = "./data/SPY.txt", 
+  sep = ",", 
+  row.names = FALSE
+)
+```
+
+## 代码清单1-2：模拟净值曲线
+
+```{r}
+# 设置随机种子
+set.seed(123)
+
+# 初始化参数
+n = length(SPY)
+V0 = 10000
+
+# 基准收益率计算
+Rb = c(NA, diff(SPY) / head(SPY, -1))  # 直接计算每日收益率
+
+# 基准资产净值曲线
+Eb = c(V0, V0 * cumprod(1 + Rb[-1]))   # 初始值后接复利计算
+
+# 定义模拟收益率函数
+generate_rt = \(Rb, mean_coef, sd_coef) {
+  rnd = rnorm(
+    n, 
+    mean = mean_coef / n,
+    sd = sd_coef * sd(Rb, na.rm = TRUE)
+  )
+  rt = Rb + rnd
+  return(rt)
+}
+
+# 生成两条模拟收益率序列
+Rt1 = generate_rt(Rb, mean_coef = 0.24, sd_coef = 2.5)
+Rt2 = generate_rt(Rb, mean_coef = 0.02, sd_coef = 0.75)
+
+# 计算模拟资产净值曲线
+calc_equity = \(Rt, V0) c(V0, V0 * cumprod(1 + Rt[-1]))
+Et1 = calc_equity(Rt1, V0)
+Et2 = calc_equity(Rt2, V0)
+
+# 绘图投资组合
+plot_data = data.frame(
+  Time = 1:n,
+  Curve1 = Et1,
+  Curve2 = Et2,
+  SPY = Eb
+)
+
+matplot(
+  plot_data$Time, 
+  plot_data[, -1], 
+  type = "l", 
+  col = c(1,2,8),
+  xlab = "Time", 
+  ylab = "Equity ($)", 
+  main = "Figure 1.3: Randomly Generated Equity Curves"
+)
+abline(h = V0, lty = 3)
+legend(
+  "topleft", 
+  legend = c("Curve 1", "Curve 2", "SPY"),
+  col = c(1,2,8), 
+  lwd = 2
+)
+```
+
+## 代码清单1-3：计算股票的夏普比率
+
+```{r}
+shap_rate = \(x) {
+  # 忽略第一个NA元素
+  mean(x, na.rm = TRUE) / sd(x, na.rm = TRUE)
+}
+SR1 = shap_rate(Rt1)
+SR2 = shap_rate(Rt2)
+SRb = shap_rate(Rb)
+```
+
+## 代码清单1-4：绘制股票的夏普比率曲线
+
+```{r}
+matplot(
+  plot_data$Time, 
+  plot_data[, -1], 
+  type = "l", 
+  col = c(1,2,8),
+  xlab = "Time", 
+  ylab = "Equity ($)", 
+  main = "Figure 1.4: Sharpe Ratios"
+)
+abline(h = V0, lty = 3)
+legend(
+  "topleft", 
+  legend = c(
+    paste0("SR = ", round(SR1, 3)),
+    paste0("SR = ", round(SR2, 3)),
+    paste0("SR = ", round(SRb, 3))
+  ),
+  col = c(1,2,8), 
+  lwd = 2
+)
+```
+
+## 代码清单1-5：最大回撤函数
+
+
+
+
+
+

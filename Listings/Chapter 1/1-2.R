@@ -9,12 +9,16 @@ Vt <- c(rep(10000, length(t)))
 
 # Benchmark Return Series
 Rb <- rep(NA, length(t))
-for(i in 2:length(t)) { Rb[i] <- (SPY[i] / SPY[i - 1]) - 1 }
+for(i in 2:length(t)) { 
+  Rb[i] <- (SPY[i] / SPY[i - 1]) - 1 
+}
 
 # Benchmark Equity Curve
 Eb <- rep(NA, length(t))
 Eb[1] <- Vt[1]
-for(i in 2:length(t)) { Eb[i] <- Eb[i-1] * (1 + Rb[i]) }
+for(i in 2:length(t)) { 
+  Eb[i] <- Eb[i-1] * (1 + Rb[i]) 
+}
 
 # Randomly Simulated Return Series 1
 Rt <- rep(NA, length(t))
